@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const port = 5000;
 
@@ -27,6 +27,7 @@ async function run() {
     const booksCollection = bookHiveDB.collection("booksCollection");
     const categoriesCollection = bookHiveDB.collection("categoriesCollection");
 
+    //book
     app.get("/books", async (req, res) => {
       const result = await booksCollection.find().toArray();
       res.send(result);
@@ -34,6 +35,30 @@ async function run() {
 
     app.get("/categories", async (req, res) => {
       const result = await categoriesCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/books", async (req, res) => {
+      const bookData = req.body;
+      const result = await booksCollection.insertOne({ bookData });
+      res.send(result);
+    });
+
+    app.get("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await booksCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    app.patch("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+
+      const result = await booksCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { data } },
+        { upsert: true }
+      );
       res.send(result);
     });
 
