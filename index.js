@@ -38,14 +38,22 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/category/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await booksCollection.find({ category: id }).toArray();
+      res.send(result);
+    });
+
     app.post("/books", async (req, res) => {
       const bookData = req.body;
-      const result = await booksCollection.insertOne({ bookData });
+      const result = await booksCollection.insertOne(bookData);
       res.send(result);
     });
 
     app.get("/books/:id", async (req, res) => {
       const id = req.params.id;
+
       const result = await booksCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
@@ -59,6 +67,14 @@ async function run() {
         { $set: { data } },
         { upsert: true }
       );
+      res.send(result);
+    });
+
+    app.delete("/books/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
+      console.log(result);
       res.send(result);
     });
 
