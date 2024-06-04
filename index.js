@@ -85,9 +85,49 @@ async function run() {
       const user = {
         email: data.email,
         name: data.name,
+        photoURL: data.photoURL,
       };
 
+      const isUserExist = await userCollection.findOne({
+        email: user?.email,
+      });
+      if (isUserExist?._id) {
+        return res.send({
+          status: "Success",
+          message: "Login success",
+        });
+      }
+
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/user/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const result = await userCollection.findOne({ email: email });
+      res.send(result);
+    });
+
+    app.get("/user/get/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const result = await userCollection.findOne({ email: email });
+      res.send(result);
+    });
+
+    app.patch("/user/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const userData = req.body;
+
+      const result = await userCollection.updateOne(
+        { email: email },
+        { $set: userData },
+        { upsert: true }
+      );
+
+      console.log(result);
       res.send(result);
     });
   } finally {
