@@ -5,7 +5,7 @@ const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 var jwt = require("jsonwebtoken");
 
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors());
