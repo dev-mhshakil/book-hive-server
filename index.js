@@ -54,7 +54,7 @@ function verifyToken(req, res, next) {
 
 async function run() {
   try {
-    await client.connect();
+    client.connect();
     const bookHiveDB = client.db("BookHiveDB");
     const userCollection = bookHiveDB.collection("userCollection");
     const booksCollection = bookHiveDB.collection("booksCollection");
