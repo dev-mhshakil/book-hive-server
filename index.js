@@ -9,8 +9,7 @@ const port = 5000;
 app.use(express.json());
 app.use(cors());
 
-const uri =
-  "mongodb+srv://mhshakil:mhshakil24@cluster0.86wsn7i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.86wsn7i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -25,7 +24,7 @@ function createToken(user) {
     {
       email: user?.email,
     },
-    "secret",
+    process.env.ACCESS_TOKEN,
     { expiresIn: "1h" }
   );
   return token;
@@ -44,7 +43,7 @@ function verifyToken(req, res, next) {
   }
 
   try {
-    const verify = jwt.verify(token, "secret");
+    const verify = jwt.verify(token, process.env.ACCESS_TOKEN);
     req.user = verify.email;
     next();
   } catch (err) {
