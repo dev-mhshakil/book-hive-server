@@ -1,15 +1,16 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 var jwt = require("jsonwebtoken");
 
-const port = 5000;
+const port = process.env.PORT;
 
 app.use(express.json());
 app.use(cors());
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.86wsn7i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = process.env.DATABASE_URL;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -24,7 +25,7 @@ function createToken(user) {
     {
       email: user?.email,
     },
-    process.env.ACCESS_TOKEN,
+    "secret",
     { expiresIn: "1h" }
   );
   return token;
@@ -43,7 +44,7 @@ function verifyToken(req, res, next) {
   }
 
   try {
-    const verify = jwt.verify(token, process.env.ACCESS_TOKEN);
+    const verify = jwt.verify(token, "secret");
     req.user = verify.email;
     next();
   } catch (err) {
