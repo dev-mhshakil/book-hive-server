@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+var jwt = require("jsonwebtoken");
 
 const port = 5000;
 
@@ -18,6 +19,38 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+function createToken(user) {
+  const token = jwt.sign(
+    {
+      email: user?.email,
+    },
+    "secret",
+    { expiresIn: "1h" }
+  );
+  return token;
+}
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send("Authorization header missing");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send("Token missing");
+  }
+
+  try {
+    const verify = jwt.verify(token, "secret");
+    req.user = verify.email;
+    next();
+  } catch (err) {
+    return res.status(401).send("Invalid token");
+  }
+}
 
 async function run() {
   try {
@@ -40,12 +73,11 @@ async function run() {
 
     app.get("/category/:id", async (req, res) => {
       const id = req.params.id;
-
       const result = await booksCollection.find({ category: id }).toArray();
       res.send(result);
     });
 
-    app.post("/books", async (req, res) => {
+    app.post("/books", verifyToken, async (req, res) => {
       const bookData = req.body;
       const result = await booksCollection.insertOne(bookData);
       res.send(result);
@@ -53,24 +85,23 @@ async function run() {
 
     app.get("/books/:id", async (req, res) => {
       const id = req.params.id;
-
       const result = await booksCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
 
-    app.patch("/books/:id", async (req, res) => {
+    app.patch("/books/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const data = req.body;
 
       const result = await booksCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { data } },
+        { $set: data },
         { upsert: true }
       );
       res.send(result);
     });
 
-    app.delete("/books/:id", async (req, res) => {
+    app.delete("/books/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
 
       const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
@@ -79,46 +110,51 @@ async function run() {
     });
 
     //user
-
     app.post("/user", async (req, res) => {
       const data = req.body;
+
       const user = {
         email: data.email,
         name: data.name,
         photoURL: data.photoURL,
       };
 
+      const token = createToken(user);
+
       const isUserExist = await userCollection.findOne({
         email: user?.email,
       });
+
       if (isUserExist?._id) {
         return res.send({
           status: "Success",
           message: "Login success",
+          token,
         });
       }
 
       const result = await userCollection.insertOne(user);
-      res.send(result);
+      res.send({
+        status: "Success",
+        message: "User created",
+        token,
+      });
     });
 
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
-
       const result = await userCollection.findOne({ email: email });
       res.send(result);
     });
 
-    app.get("/user/get/:email", async (req, res) => {
+    app.get("/user/get/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-
       const result = await userCollection.findOne({ email: email });
       res.send(result);
     });
 
-    app.patch("/user/:email", async (req, res) => {
+    app.patch("/user/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-
       const userData = req.body;
 
       const result = await userCollection.updateOne(
@@ -127,7 +163,6 @@ async function run() {
         { upsert: true }
       );
 
-      console.log(result);
       res.send(result);
     });
   } finally {
@@ -135,6 +170,7 @@ async function run() {
     // await client.close();
   }
 }
+
 run().catch(console.dir);
 
 app.listen(port, () => {
