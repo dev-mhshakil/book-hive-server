@@ -14,6 +14,7 @@ app.get("/", async (req, res) => {
   await res.send("Welcome to BookHive Server");
 });
 
+//database url
 const uri = process.env.DATABASE_URL;
 
 const client = new MongoClient(uri, {
