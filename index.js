@@ -64,6 +64,9 @@ async function run() {
     const userCollection = bookHiveDB.collection("userCollection");
     const booksCollection = bookHiveDB.collection("booksCollection");
     const categoriesCollection = bookHiveDB.collection("categoriesCollection");
+    const readingListCollection = bookHiveDB.collection(
+      "readingListCollection"
+    );
 
     //book
     app.get("/books", async (req, res) => {
@@ -80,6 +83,65 @@ async function run() {
       const id = req.params.id;
       const result = await booksCollection.find({ category: id }).toArray();
       res.send(result);
+    });
+
+    //reading-list
+    app.post("/reading-list/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const user = req.body;
+
+      const bookData = await booksCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      const query = { "bookData._id": new ObjectId(id) };
+      const isListExist = await readingListCollection.findOne(query);
+
+      if (isListExist?._id) {
+        return res.send({ status: "Book is already added to the list." });
+      }
+
+      const data = {
+        bookData,
+        userEmail: user?.email,
+      };
+
+      const result = await readingListCollection.insertOne(data);
+      res.send(result);
+    });
+
+    app.get("/reading-list/:email", async (req, res) => {
+      const email = req.params.email;
+
+      const result = await readingListCollection
+        .find({ userEmail: email })
+        .toArray();
+
+      res.send(result);
+    });
+
+    app.get("/reading-list/status/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const query = { "bookData._id": new ObjectId(id) };
+
+      const result = await readingListCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/reading-list/status/:bookId", async (req, res) => {
+      const bookId = req.params.bookId;
+      const userEmail = req.user;
+
+      const status = await readingListCollection.findOne({
+        bookId,
+        userEmail,
+      });
+      if (status) {
+        res.send({ status: true });
+      } else {
+        res.send({ status: false });
+      }
     });
 
     app.post("/books", verifyToken, async (req, res) => {
@@ -110,7 +172,7 @@ async function run() {
       const id = req.params.id;
 
       const result = await booksCollection.deleteOne({ _id: new ObjectId(id) });
-      console.log(result);
+
       res.send(result);
     });
 
