@@ -90,11 +90,17 @@ async function run() {
       const id = req.params.id;
       const user = req.body;
 
+      if (!user.email) {
+        return res.status(400).send("User email is required");
+      }
+
+      // console.log(user.email);
+
       const bookData = await booksCollection.findOne({
         _id: new ObjectId(id),
       });
 
-      const query = { "bookData._id": new ObjectId(id) };
+      const query = { "bookData._id": new ObjectId(id), userEmail: user.email };
       const isListExist = await readingListCollection.findOne(query);
 
       if (isListExist?._id) {
@@ -103,10 +109,13 @@ async function run() {
 
       const data = {
         bookData,
-        userEmail: user?.email,
+        userEmail: user.email,
       };
 
+      console.log(data);
+
       const result = await readingListCollection.insertOne(data);
+      console.log(result);
       res.send(result);
     });
 
@@ -122,27 +131,50 @@ async function run() {
 
     app.get("/reading-list/status/:id", async (req, res) => {
       const id = req.params.id;
+      const email = req.query.email;
 
-      const query = { "bookData._id": new ObjectId(id) };
+      if (!id || !email) {
+        return res.status(400).send("Book ID and user email are required");
+      }
 
-      const result = await readingListCollection.findOne(query);
-      res.send(result);
-    });
+      const query = { "bookData._id": new ObjectId(id), userEmail: email };
 
-    app.get("/reading-list/status/:bookId", async (req, res) => {
-      const bookId = req.params.bookId;
-      const userEmail = req.user;
-
-      const status = await readingListCollection.findOne({
-        bookId,
-        userEmail,
-      });
-      if (status) {
-        res.send({ status: true });
-      } else {
-        res.send({ status: false });
+      try {
+        const result = await readingListCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send("Error fetching book status");
       }
     });
+
+    // app.get("/reading-list/status/:id", async (req, res) => {
+    //   const id = req.params.id;
+
+    //   const user = req.body;
+
+    //   const query = { "bookData._id": new ObjectId(id) };
+
+    //   const result = await readingListCollection.findOne(query);
+    //   res.send(result);
+    // });
+
+    // app.get("/reading-list/status/:bookId", async (req, res) => {
+    //   const bookId = req.params.bookId;
+    //   const userEmail = req.user;
+
+    //   // console.log(bookId, userEmail);
+
+    //   const status = await readingListCollection.findOne({
+    //     bookId,
+    //     userEmail,
+    //   });
+    //   if (status) {
+    //     res.send({ status: true });
+    //   } else {
+    //     res.send({ status: false });
+    //   }
+    // });
 
     app.post("/books", verifyToken, async (req, res) => {
       const bookData = req.body;
